@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Horizon3D: Sparse Radar-Camera Fusion for Long-Range 3D Perception</title>
+  <meta name="description" content="Horizon3D achieves state-of-the-art long-range 3D object detection via sparse radar-camera fusion using Gaussian primitives and sparse BEV features. ECCV 2026.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/css/style.css?v=11">
+</head>
+<body>
+
+<!-- ════════════════ HERO ════════════════ -->
+<header class="hero">
+  <div class="container">
+    <div class="venue">ECCV 2026</div>
+    <h1>Horizon3D: Sparse Radar-Camera Fusion for Long-Range 3D Perception in Autonomous Driving</h1>
+    <p class="authors">
+      <a href="#">Geonho Bang</a>&ensp;
+      <a href="#">Geunju Baek</a>&ensp;
+      <a href="#">Dongyoung Lee</a>&ensp;
+      <a href="#">Wonjun Jeong</a>&ensp;
+      <a href="#" class="corresponding">Jun Won Choi</a>
+    </p>
+    <p class="affiliation">Seoul National University</p>
+    <div class="links">
+      <a class="primary" href="#">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Paper
+      </a>
+      <a class="primary" href="#">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        Code
+      </a>
+      <a class="secondary" href="#demo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Interactive Demo
+      </a>
+      <a class="secondary" href="#">arXiv</a>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════ ABSTRACT ════════════════ -->
+<section id="abstract">
+  <div class="container">
+    <h2 class="section-title">Abstract</h2>
+    <p class="abstract-text">
+      Long-range 3D object detection is critical for safe autonomous driving at highway speeds, yet existing radar-camera fusion methods face notable limitations at extended ranges.
+      BEV-based approaches effectively encode scene-level context but incur rapidly growing computational cost and struggle to preserve fine-grained object-level detail, while query-based methods provide efficient object-centric encoding but lack sufficient scene-level context.
+      In this paper, we propose <strong>Horizon3D</strong>, a sparse radar-camera fusion framework for long-range 3D object detection that jointly captures object-level detail and scene-level context in both spatial and temporal dimensions through a hybrid representation that combines <em>Gaussian primitives</em> with <em>sparse BEV features</em>.
+      Horizon3D first employs <strong>Keypoint-Guided Gaussian Initialization (KGGI)</strong> to initialize Gaussian primitives at object keypoints estimated from radar and camera features.
+      <strong>Object-Centric Sparse Fusion (OCSF)</strong> aggregates cross-modal features around these primitives and splats the refined Gaussians onto the BEV plane, where they are fused with sparse radar BEV features.
+      Finally, <strong>Dual-Path Temporal Fusion (DPTF)</strong> aggregates temporal cues through a BEV path for multi-frame feature accumulation and a Gaussian path for propagating primitives across frames to encode per-object motion.
+      Extensive evaluations on TruckScenes demonstrate that Horizon3D achieves state-of-the-art performance, outperforming the previous best method by <strong>+3.0 NDS</strong> and <strong>+1.6 mAP</strong> while maintaining competitive inference speed.
+    </p>
+  </div>
+</section>
+
+<!-- ════════════════ TEASER ════════════════ -->
+<section class="teaser">
+  <div class="container">
+    <img src="static/images/fig1-1.png" alt="Comparison of radar-camera fusion paradigms">
+    <p class="caption">
+      <strong>Comparison of radar-camera fusion paradigms.</strong>
+      (a) Dense BEV fusion encodes scene-level context but incurs growing cost with range.
+      (b) Sparse query-based fusion achieves efficient object-centric encoding but lacks scene-level context.
+      (c) Our hybrid BEV fusion employs Gaussian primitives and sparse BEV features for object- and scene-level encoding, and uses dual-path temporal fusion.
+    </p>
+  </div>
+</section>
+
+<!-- ════════════════ METHOD ════════════════ -->
+<section id="method">
+  <div class="container">
+    <h2 class="section-title">Method</h2>
+    <div class="method-overview">
+      <img src="static/images/overall-1.png" alt="Overall architecture of Horizon3D">
+      <p class="caption" style="margin-top:12px">
+        <strong>Overall architecture of Horizon3D.</strong> Multi-view camera images and 4D radar points are encoded by their respective backbones. KGGI initializes sparse Gaussian primitives at estimated object keypoints. OCSF aggregates cross-modal features and produces a sparse BEV representation. DPTF fuses temporal information through Gaussian and BEV paths.
+      </p>
+    </div>
+    <div class="method-cards">
+      <div class="method-card">
+        <h3>KGGI</h3>
+        <p>
+          <strong>Keypoint-Guided Gaussian Initialization</strong> estimates object keypoints from both radar and camera features and initializes a compact set of Gaussian primitives at these locations, enabling efficient object-centric encoding even at extended detection ranges up to 150m.
+        </p>
+      </div>
+      <div class="method-card">
+        <h3>OCSF</h3>
+        <p>
+          <strong>Object-Centric Sparse Fusion</strong> aggregates cross-modal features around Gaussian primitives via deformable cross-attention, iteratively refines their parameters, and splats them onto the BEV plane to produce a sparse representation fused with radar BEV features.
+        </p>
+      </div>
+      <div class="method-card">
+        <h3>DPTF</h3>
+        <p>
+          <strong>Dual-Path Temporal Fusion</strong> integrates temporal cues through two complementary paths: a BEV path that accumulates foreground features over multiple frames, and a Gaussian path that propagates primitives across frames with velocity-guided motion compensation.
+        </p>
+      </div>
+    </div>
+
+    <div class="method-detail">
+      <img src="static/images/ocsf_fig.png" alt="Object-Centric Sparse Fusion (OCSF)">
+      <p class="caption">
+        <strong>Object-Centric Sparse Fusion (OCSF).</strong> Refined Gaussian primitives are splatted to form a class-agnostic BEV mask supervised against the BEV mask GT, while sampled active Gaussians aggregate cross-modal features around each object to produce object-centric BEV features.
+      </p>
+    </div>
+    <div class="method-detail">
+      <img src="static/images/dptf_fig.png" alt="Dual-Path Temporal Fusion (DPTF)">
+      <p class="caption">
+        <strong>Dual-Path Temporal Fusion (DPTF).</strong> The Gaussian path propagates a velocity-matched history Gaussian set through a FIFO memory, while the BEV path accumulates filtered sparse BEV features in a memory bank — jointly encoding per-object motion and multi-frame scene context.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ INTERACTIVE DEMO ════════════════ -->
+<section id="demo">
+  <div class="container">
+    <h2 class="section-title">Interactive Demo</h2>
+
+    <!-- ─── Part 1: OCSF Step-through ─── -->
+    <h3 style="text-align:center;color:#0f0f23;font-size:1.15rem;margin-bottom:6px">Object-Centric Sparse Fusion (OCSF)</h3>
+    <p style="text-align:center;color:#555;font-size:.88rem;margin-bottom:20px">
+      Step through the OCSF pipeline: from detected objects to Gaussian primitives to BEV splatting.
+    </p>
+
+    <div class="demo-section">
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;flex-wrap:wrap">
+        <button class="demo-tab active" id="ocsf-step-1">① Objects</button>
+        <button class="demo-tab" id="ocsf-step-2">② Keypoints</button>
+        <button class="demo-tab" id="ocsf-step-3">③ Gaussians</button>
+        <button class="demo-tab" id="ocsf-step-4">④ BEV Splatting</button>
+      </div>
+      <div class="demo-canvas-wrap" style="max-width:520px;margin:0 auto;aspect-ratio:1/1">
+        <canvas id="ocsfCanvas"></canvas>
+      </div>
+      <div style="max-width:640px;margin:16px auto 0">
+        <p class="demo-info" id="ocsf-step-desc" style="text-align:center">
+          Detected objects on the BEV plane (forward view). Cyan = GT, red dashed = enlarged GT box (BEV-mask target), orange = predictions.
+        </p>
+        <div class="demo-legend" style="margin-top:10px;text-align:center">
+          <span style="color:#4cc9f0">&#9632;</span> GT &middot;
+          <span style="color:#ff4d4d">&#9633;</span> Enlarged GT &middot;
+          <span style="color:#f9844a">&#9632;</span> Prediction &middot;
+          <span style="color:#ffd166">&#9679;</span> Keypoint / Gaussian &middot;
+          Glow = Splatted BEV feature
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Part 2: DPTF – Real Inference Temporal Visualization ─── -->
+    <h3 style="text-align:center;color:#0f0f23;font-size:1.15rem;margin-top:40px;margin-bottom:6px">Dual-Path Temporal Fusion (DPTF)</h3>
+    <p style="text-align:center;color:#555;font-size:.88rem;margin-bottom:20px;max-width:820px;margin-left:auto;margin-right:auto">
+      Real inference on a TruckScenes highway scene (forward view). <strong>Top row — Gaussian path:</strong> propagated past primitives are velocity-compensated; without it (left) they lag behind moving objects. <strong>Bottom row — BEV path:</strong> both are ego-motion compensated, but without the velocity head (left) moving objects' BEV features smear along their motion; with it (right) they stay sharp.
+    </p>
+
+    <div class="demo-section">
+
+      <!-- ═══ Group 1: Gaussian Path ═══ -->
+      <div class="demo-actions dptf-controls" style="justify-content:center;margin-bottom:12px">
+        <button class="demo-btn primary dptf-play">&#9654; Play</button>
+        <button class="demo-btn secondary dptf-stop">&#9724; Stop</button>
+        <button class="demo-btn secondary dptf-step">Step</button>
+        <button class="demo-btn secondary dptf-reset">Reset</button>
+        <span class="dptf-ego" style="font-size:.85rem;color:#666;margin-left:12px">Ego: 0 km/h</span>
+      </div>
+      <div style="margin-bottom:14px;border-radius:8px;overflow:hidden;max-width:680px;margin-left:auto;margin-right:auto">
+        <img class="dptf-cam" src="static/images/dptf_cam/0.jpg" alt="Front camera view" style="width:100%;display:block">
+        <div style="text-align:center;font-size:.75rem;color:#888;padding:4px">Front cameras (LEFT_FRONT + RIGHT_FRONT)</div>
+      </div>
+      <div style="text-align:center;font-weight:800;font-size:1rem;color:#0f0f23;margin-bottom:10px">Gaussian Path <span style="font-weight:600;color:#888;font-size:.85rem">— a few Gaussians on 3 tracked dynamic objects, followed over time</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin:0 auto">
+        <div>
+          <div style="text-align:center;font-weight:700;font-size:.82rem;color:#ff6b6b;margin-bottom:6px">Before Vel. Comp.</div>
+          <div class="demo-canvas-wrap" style="aspect-ratio:1/1"><canvas id="dptfNoCompCanvas"></canvas></div>
+        </div>
+        <div>
+          <div style="text-align:center;font-weight:700;font-size:.82rem;color:#90be6d;margin-bottom:6px">After Vel. Comp.</div>
+          <div class="demo-canvas-wrap" style="aspect-ratio:1/1"><canvas id="dptfCompCanvas"></canvas></div>
+        </div>
+      </div>
+      <div class="demo-legend" style="margin-top:10px;text-align:center;font-size:.8rem">
+        <span style="color:#ff4d4d">&#9633;</span> Enlarged GT &middot;
+        <span style="color:#845ef7">&#9679;</span><span style="color:#20c997">&#9679;</span><span style="color:#f783ac">&#9679;</span> tracked objects' Gaussians &middot;
+        <span style="color:#f9c74f">&#10140;</span> Velocity vector &middot; Play (1 fps) to follow them over time
+      </div>
+
+      <hr style="margin:32px 0 28px;border:none;border-top:1px solid #e0e4ea">
+
+      <!-- ═══ Group 2: BEV Path ═══ -->
+      <div class="demo-actions dptf-controls" style="justify-content:center;margin-bottom:12px">
+        <button class="demo-btn primary dptf-play">&#9654; Play</button>
+        <button class="demo-btn secondary dptf-stop">&#9724; Stop</button>
+        <button class="demo-btn secondary dptf-step">Step</button>
+        <button class="demo-btn secondary dptf-reset">Reset</button>
+        <span class="dptf-ego" style="font-size:.85rem;color:#666;margin-left:12px">Ego: 0 km/h</span>
+      </div>
+      <div style="margin-bottom:14px;border-radius:8px;overflow:hidden;max-width:680px;margin-left:auto;margin-right:auto">
+        <img class="dptf-cam" src="static/images/dptf_cam/0.jpg" alt="Front camera view" style="width:100%;display:block">
+        <div style="text-align:center;font-size:.75rem;color:#888;padding:4px">Front cameras (LEFT_FRONT + RIGHT_FRONT)</div>
+      </div>
+      <div style="text-align:center;font-weight:800;font-size:1rem;color:#0f0f23;margin-bottom:10px">BEV Path <span style="font-weight:600;color:#888;font-size:.85rem">— velocity compensation of accumulated BEV features</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin:0 auto">
+        <div>
+          <div style="text-align:center;font-weight:700;font-size:.82rem;color:#ff6b6b;margin-bottom:6px">Without Velocity Comp.</div>
+          <div class="demo-canvas-wrap" style="aspect-ratio:1/1"><canvas id="dptfFeatCanvas"></canvas></div>
+        </div>
+        <div>
+          <div style="text-align:center;font-weight:700;font-size:.82rem;color:#90be6d;margin-bottom:6px">With Velocity Comp.</div>
+          <div class="demo-canvas-wrap" style="aspect-ratio:1/1"><canvas id="dptfDetCanvas"></canvas></div>
+        </div>
+      </div>
+      <div class="demo-legend" style="margin-top:10px;text-align:center;font-size:.8rem">
+        <span style="color:#4cc9f0">&#9632;</span> GT &middot;
+        <span style="color:#f9844a">&#9632;</span> Prediction &middot;
+        Heatmap = accumulated BEV features (both ego-motion compensated)
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════ RESULTS ════════════════ -->
+<section id="results">
+  <div class="container">
+    <h2 class="section-title">Main Results on TruckScenes</h2>
+
+    <div class="results-table-wrap">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th class="method-name">Method</th>
+            <th>Input</th>
+            <th>Backbone</th>
+            <th>Split</th>
+            <th>NDS</th>
+            <th>mAP</th>
+            <th>mATE</th>
+            <th>mASE</th>
+            <th>mAOE</th>
+            <th>mAVE</th>
+            <th>mAAE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Val R50 -->
+          <tr>
+            <td class="method-name">CenterPoint-V</td><td>L</td><td>Voxel</td><td>val</td>
+            <td>35.3</td><td>22.6</td><td>0.461</td><td>0.405</td><td>0.468</td><td>3.028</td><td>0.261</td>
+          </tr>
+          <tr>
+            <td class="method-name">RCTrans</td><td>C+R</td><td>R50</td><td>val</td>
+            <td>22.9</td><td>12.6</td><td>1.025</td><td>0.507</td><td>0.608</td><td>0.894</td><td>0.331</td>
+          </tr>
+          <tr>
+            <td class="method-name">CRT-Fusion</td><td>C+R</td><td>R50</td><td>val</td>
+            <td>28.8</td><td>16.9</td><td>0.833</td><td>0.512</td><td>0.444</td><td>0.852</td><td>0.322</td>
+          </tr>
+          <tr>
+            <td class="method-name">BEVFusion</td><td>C+R</td><td>R50</td><td>val</td>
+            <td>30.4</td><td>18.2</td><td>0.941</td><td>0.442</td><td>0.389</td><td>0.892</td><td>0.208</td>
+          </tr>
+          <tr class="ours">
+            <td class="method-name">Horizon3D (Ours)</td><td>C+R</td><td>R50</td><td>val</td>
+            <td class="best">37.4</td><td class="best">23.6</td><td>0.876</td><td>0.410</td><td>0.331</td><td>0.625</td><td>0.198</td>
+          </tr>
+          <tr class="separator"><td colspan="11"></td></tr>
+          <!-- Val V2-99 -->
+          <tr>
+            <td class="method-name">Far3D</td><td>C</td><td>V2-99</td><td>val</td>
+            <td>21.4</td><td>10.7</td><td>0.883</td><td>0.507</td><td>0.671</td><td>1.352</td><td>0.338</td>
+          </tr>
+          <tr>
+            <td class="method-name">SpaRC</td><td>C+R</td><td>V2-99</td><td>val</td>
+            <td>35.4</td><td>22.5</td><td>0.798</td><td>0.449</td><td>0.476</td><td>0.613</td><td>0.248</td>
+          </tr>
+          <tr class="ours">
+            <td class="method-name">Horizon3D (Ours)</td><td>C+R</td><td>V2-99</td><td>val</td>
+            <td class="best">38.4</td><td class="best">24.1</td><td>0.833</td><td>0.404</td><td>0.355</td><td>0.561</td><td>0.208</td>
+          </tr>
+          <tr class="separator"><td colspan="11"></td></tr>
+          <!-- Test -->
+          <tr>
+            <td class="method-name">CenterPoint-V</td><td>L</td><td>Voxel</td><td>test</td>
+            <td>41.0</td><td>26.7</td><td>0.409</td><td>0.352</td><td>0.277</td><td>2.730</td><td>0.201</td>
+          </tr>
+          <tr>
+            <td class="method-name">HyDRa</td><td>C+R</td><td>V2-99</td><td>test</td>
+            <td>22.4</td><td>12.8</td><td>0.725</td><td>0.544</td><td>0.744</td><td>1.180</td><td>0.388</td>
+          </tr>
+          <tr>
+            <td class="method-name">SpaRC</td><td>C+R</td><td>V2-99</td><td>test</td>
+            <td>37.4</td><td>27.2</td><td>0.759</td><td>0.413</td><td>0.411</td><td>0.814</td><td>0.227</td>
+          </tr>
+          <tr class="ours">
+            <td class="method-name">Horizon3D (Ours)</td><td>C+R</td><td>V2-99</td><td>test</td>
+            <td class="best">41.8</td><td class="best">27.7</td><td>0.779</td><td>0.354</td><td>0.269</td><td>0.637</td><td>0.167</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="text-align:center;font-size:.82rem;color:#888;margin-top:12px">
+      L = LiDAR, C = Camera, R = Radar. All metrics follow the official TruckScenes evaluation protocol.
+    </p>
+  </div>
+</section>
+
+<!-- ════════════════ QUALITATIVE ════════════════ -->
+<section id="qualitative">
+  <div class="container">
+    <h2 class="section-title">Qualitative Results</h2>
+    <p style="text-align:center;color:#555;font-size:.88rem;margin-bottom:20px">
+      BEV detections (left) alongside the four surround-view cameras (right) across diverse weather and lighting conditions. On the BEV, GT boxes (<span style="color:#64dc64">green</span> dashed) are shown vs predictions (<span style="color:#ff8c3c">orange</span> solid); cameras show predictions only. Faster objects have darker fill.
+    </p>
+    <div style="position:relative;max-width:940px;margin:0 auto">
+      <div class="qual-item" id="qual-carousel-item">
+        <img id="qual-carousel-img" src="static/images/demo_sunny.gif?v=11" alt="Detection demo" style="width:100%">
+        <div class="caption" style="text-align:center"><strong id="qual-carousel-label">Sunny</strong></div>
+      </div>
+      <button id="qual-prev" style="position:absolute;left:-48px;top:50%;transform:translateY(-50%);background:rgba(67,97,238,0.15);border:1.5px solid #4361ee;color:#4361ee;width:36px;height:36px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s" onmouseover="this.style.background='#4361ee';this.style.color='#fff'" onmouseout="this.style.background='rgba(67,97,238,0.15)';this.style.color='#4361ee'">&#9664;</button>
+      <button id="qual-next" style="position:absolute;right:-48px;top:50%;transform:translateY(-50%);background:rgba(67,97,238,0.15);border:1.5px solid #4361ee;color:#4361ee;width:36px;height:36px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s" onmouseover="this.style.background='#4361ee';this.style.color='#fff'" onmouseout="this.style.background='rgba(67,97,238,0.15)';this.style.color='#4361ee'">&#9654;</button>
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:12px">
+        <span class="qual-dot" data-idx="0" style="width:10px;height:10px;border-radius:50%;background:#4361ee;cursor:pointer;transition:all .2s"></span>
+        <span class="qual-dot" data-idx="1" style="width:10px;height:10px;border-radius:50%;background:#ccc;cursor:pointer;transition:all .2s"></span>
+        <span class="qual-dot" data-idx="2" style="width:10px;height:10px;border-radius:50%;background:#ccc;cursor:pointer;transition:all .2s"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ CITATION ════════════════ -->
+<section id="citation">
+  <div class="container">
+    <h2 class="section-title">Citation</h2>
+    <div class="bibtex-block">
+      <button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('bibtex').textContent)">Copy</button>
+<pre id="bibtex">@inproceedings{bang2026horizon3d,
+  title     = {Horizon3D: Sparse Radar-Camera Fusion for Long-Range
+               3D Perception in Autonomous Driving},
+  author    = {Bang, Geonho and Baek, Geunju and Lee, Dongyoung
+               and Jeong, Wonjun and Choi, Jun Won},
+  booktitle = {European Conference on Computer Vision (ECCV)},
+  year      = {2026}
+}</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ FOOTER ════════════════ -->
+<footer>
+  <div class="container">
+    <p>Horizon3D &copy; 2026 &middot; Seoul National University &middot;
+    Template inspired by <a href="https://nerfies.github.io/" target="_blank">Nerfies</a></p>
+  </div>
+</footer>
+
+<script src="static/js/gaussian-demo.js?v=11"></script>
+</body>
+</html>
