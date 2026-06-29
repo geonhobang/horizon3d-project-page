@@ -7,7 +7,7 @@
   <meta name="description" content="Horizon3D achieves state-of-the-art long-range 3D object detection via sparse radar-camera fusion using Gaussian primitives and sparse BEV features. ECCV 2026.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="static/css/style.css?v=11">
+  <link rel="stylesheet" href="static/css/style.css?v=12">
 </head>
 <body>
 
@@ -172,7 +172,7 @@
         <img class="dptf-cam" src="static/images/dptf_cam/0.jpg" alt="Front camera view" style="width:100%;display:block">
         <div style="text-align:center;font-size:.75rem;color:#888;padding:4px">Front cameras (LEFT_FRONT + RIGHT_FRONT)</div>
       </div>
-      <div style="text-align:center;font-weight:800;font-size:1rem;color:#0f0f23;margin-bottom:10px">Gaussian Path <span style="font-weight:600;color:#888;font-size:.85rem">— a few Gaussians on 3 tracked dynamic objects, followed over time</span></div>
+      <div style="text-align:center;font-weight:800;font-size:1rem;color:#0f0f23;margin-bottom:10px">Gaussian Path <span style="font-weight:600;color:#888;font-size:.85rem">— 2 tracked dynamic objects: why propagation needs velocity compensation</span></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin:0 auto">
         <div>
           <div style="text-align:center;font-weight:700;font-size:.82rem;color:#ff6b6b;margin-bottom:6px">Before Vel. Comp.</div>
@@ -184,9 +184,9 @@
         </div>
       </div>
       <div class="demo-legend" style="margin-top:10px;text-align:center;font-size:.8rem">
-        <span style="color:#ff4d4d">&#9633;</span> Enlarged GT &middot;
-        <span style="color:#845ef7">&#9679;</span><span style="color:#20c997">&#9679;</span><span style="color:#f783ac">&#9679;</span> tracked objects' Gaussians &middot;
-        <span style="color:#f9c74f">&#10140;</span> Velocity vector &middot; Play (1 fps) to follow them over time
+        <span style="color:#845ef7">&#9679;</span><span style="color:#20c997">&#9679;</span> tracked objects' Gaussians &middot;
+        <span style="color:#f9c74f">&#10140;</span> Velocity vector &middot;
+        dashed line = drift from the object when velocity comp. is off &middot; Play (1 fps)
       </div>
 
       <hr style="margin:32px 0 28px;border:none;border-top:1px solid #e0e4ea">
@@ -318,7 +318,7 @@
     </p>
     <div style="position:relative;max-width:940px;margin:0 auto">
       <div class="qual-item" id="qual-carousel-item">
-        <img id="qual-carousel-img" src="static/images/demo_sunny.gif?v=11" alt="Detection demo" style="width:100%">
+        <img id="qual-carousel-img" src="static/images/demo_sunny.gif?v=12" alt="Detection demo" style="width:100%">
         <div class="caption" style="text-align:center"><strong id="qual-carousel-label">Sunny</strong></div>
       </div>
       <button id="qual-prev" style="position:absolute;left:-48px;top:50%;transform:translateY(-50%);background:rgba(67,97,238,0.15);border:1.5px solid #4361ee;color:#4361ee;width:36px;height:36px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s" onmouseover="this.style.background='#4361ee';this.style.color='#fff'" onmouseout="this.style.background='rgba(67,97,238,0.15)';this.style.color='#4361ee'">&#9664;</button>
@@ -358,6 +358,6 @@
   </div>
 </footer>
 
-<script src="static/js/gaussian-demo.js?v=11"></script>
+<script src="static/js/gaussian-demo.js?v=12"></script>
 </body>
 </html>

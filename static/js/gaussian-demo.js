@@ -308,6 +308,7 @@
   // canvas ids → role
   const DPTF_CANVAS = ["dptfNoCompCanvas","dptfCompCanvas","dptfFeatCanvas","dptfDetCanvas"];
   const DPTF_DT = 0.7;  // s — propagation interval used to illustrate vel-compensation lag
+  const LAG_DT = 1.3;   // s — larger interval for the Gaussian-path drift emphasis
 
   let dptf = {
     canvases:[], ctxs:[],
@@ -452,6 +453,7 @@
 
     const g = fr.gaussians;
     const tracked = fr.tracked || [];
+    const s = W/800;
     if (g) {
       // Faint context: the rest of the Gaussian field.
       let drawn = 0;
@@ -459,35 +461,59 @@
         if (g.opacities[i] < 0.5) continue;
         drawn++;
         const p = lidar2screen(g.means[i][0], g.means[i][1], W);
-        ctx.beginPath(); ctx.arc(p.x, p.y, 1.0*(W/800), 0, Math.PI*2);
-        ctx.fillStyle = "rgba(150,160,190,0.10)"; ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, 1.0*s, 0, Math.PI*2);
+        ctx.fillStyle = "rgba(150,160,190,0.09)"; ctx.fill();
       }
-      // Tracked dynamic objects: a few Gaussians per object, followed over time,
-      // each with its velocity vector. In "before" they lag (p - v·dt) behind
-      // their box; in "after" they sit on it.
+      // Tracked dynamic objects (1–2), shown in detail. In "before" their
+      // propagated Gaussians are NOT velocity-compensated, so they drift well
+      // behind the object (dashed connector); in "after" they sit on it.
       for (const t of tracked) {
         const color = TRACK_COLORS[t.tid % TRACK_COLORS.length];
-        drawBoxOnBev(ctx, W, t.box, color, {dashed:false, fillAlpha:0.08});
+        const boxP = lidar2screen(t.box[0], t.box[1], W);
+        drawBoxOnBev(ctx, W, t.box, color, {dashed:false, fillAlpha:0.16});
+
+        const pts = [];
+        let mx = 0, my = 0;
         for (const gi of t.gidx) {
           if (gi >= g.means.length) continue;
           let [lx, ly] = g.means[gi];
           const v = g.velocities && g.velocities[gi] ? g.velocities[gi] : [0,0];
-          if (before) { lx -= v[0]*DPTF_DT; ly -= v[1]*DPTF_DT; }
+          if (before) { lx -= v[0]*LAG_DT; ly -= v[1]*LAG_DT; }
           const p = lidar2screen(lx, ly, W);
+          pts.push({ p, lx, ly, v, gi }); mx += p.x; my += p.y;
+        }
+        if (!pts.length) continue;
+        mx /= pts.length; my /= pts.length;
+
+        // "drift" connector from the lagging Gaussians to the actual object
+        if (before) {
+          ctx.setLineDash([5,4]); ctx.strokeStyle = color; ctx.lineWidth = 1.4*s;
+          ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(boxP.x, boxP.y); ctx.stroke();
+          ctx.setLineDash([]);
+          drawArrow(ctx, mx, my, boxP.x, boxP.y, color, 1.4*s, W);
+        }
+        for (const { p, lx, ly, v, gi } of pts) {
           const [sx,sy] = g.scales[gi];
           const [cosR,sinR] = g.rotations[gi];
-          ctx_save_draw_ellipse(ctx, p.x, p.y, meters2px(sx*1.5, W), meters2px(sy*1.5, W),
-                                screenAngle(cosR, sinR), color, 0.8);
-          ctx.beginPath(); ctx.arc(p.x, p.y, 2.8*(W/800), 0, Math.PI*2);
+          ctx_save_draw_ellipse(ctx, p.x, p.y, meters2px(sx*1.6, W), meters2px(sy*1.6, W),
+                                screenAngle(cosR, sinR), color, 0.9);
+          ctx.beginPath(); ctx.arc(p.x, p.y, 3.2*s, 0, Math.PI*2);
           ctx.fillStyle = color; ctx.fill();
-          ctx.strokeStyle = "#fff"; ctx.lineWidth = 0.9*(W/800);
-          ctx.beginPath(); ctx.arc(p.x, p.y, 4.4*(W/800), 0, Math.PI*2); ctx.stroke();
+          ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.0*s;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 5.2*s, 0, Math.PI*2); ctx.stroke();
           drawVelocityArrow(ctx, W, lx, ly, v[0], v[1], "#f9c74f");
         }
       }
     }
     dptfReset(ctx);
     dptfChips(ctx, W);
+    // emphasis caption
+    ctx.textAlign = "center";
+    ctx.font = `bold ${13*s}px sans-serif`;
+    ctx.fillStyle = before ? "rgba(255,120,120,0.95)" : "rgba(140,222,150,0.95)";
+    ctx.fillText(before ? "✗ primitives drift off the object"
+                        : "✓ primitives stay on the object", W/2, W-12*s);
+    ctx.textAlign = "start";
   }
 
   // BEV-path panel. Both panels are ego-motion compensated (static background
@@ -555,9 +581,9 @@
   /* ═══ Qualitative Carousel ═══ */
   function initCarousel() {
     const scenes = [
-      { src: "static/images/demo_sunny.gif?v=11", label: "Sunny" },
-      { src: "static/images/demo_rainy.gif?v=11", label: "Rainy" },
-      { src: "static/images/demo_night.gif?v=11", label: "Night" },
+      { src: "static/images/demo_sunny.gif?v=12", label: "Sunny" },
+      { src: "static/images/demo_rainy.gif?v=12", label: "Rainy" },
+      { src: "static/images/demo_night.gif?v=12", label: "Night" },
     ];
     let idx = 0;
     const img = document.getElementById("qual-carousel-img");
@@ -585,8 +611,8 @@
 
     try {
       const [ocsfResp, dptfResp] = await Promise.all([
-        fetch("static/data/ocsf_demo.json?v=11"),
-        fetch("static/data/dptf_demo.json?v=11"),
+        fetch("static/data/ocsf_demo.json?v=12"),
+        fetch("static/data/dptf_demo.json?v=12"),
       ]);
       if (ocsfResp.ok) {
         realOCSF = await ocsfResp.json();
